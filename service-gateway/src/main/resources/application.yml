@@ -1,0 +1,112 @@
+server:
+  port: 8600
+spring:
+  application:
+    name: gateway
+  profiles:
+    # 指定配置
+    # route_simple：简单尝试
+    # route_stripPrefix：截取请求
+    # route_uri：转发指定地址并传入参数，自定义过滤器
+    # route_ld：服务发现
+    # 下面会有多个配置  active为选择使用哪个配置 值为spring.profiles中对应的值
+    active: route_ld
+
+--- # 单纯转发
+spring:
+  profiles: route_simple
+  cloud:
+    gateway:
+      routes:
+          # id自定义 不能重复
+        - id: url-proxy-1
+          # uri为满足条件之后需要跳转到哪里
+          uri: https://blog.csdn.net
+          # 断言 , 满足条件 , 此条件为路径为csdn     localhost:port/csdn
+          predicates:
+            - Path=/csdn
+        - id: url-fsfy-2
+          uri: http://www.sunlands.com/
+          # 此条件为参数名为green并且值是个数         localhost:port?green=1
+          predicates:
+            - Query=green,\d+
+    nacos:
+      discovery:
+        enabled: false
+
+--- # 过滤器截取
+spring:
+  profiles: route_stripPrefix
+  cloud:
+    gateway:
+      routes:
+        - id: url-proxy-1
+          uri: https://blog.csdn.net
+          predicates:
+            - Path=/str/rank/list   #localhost:port/str/rank/writing_rank
+          # 过滤器 断言满足后做的操作
+          filters:
+          # 截取路径位数  会将第一个截取掉  变为 localhost:port/rank/writing_rank
+            - StripPrefix=1
+    nacos:
+      discovery:
+        enabled: false
+
+--- ## 转发指定地址截取并传入参数
+spring:
+  profiles: route_uri
+  cloud:
+    gateway:
+      routes:
+        # 路由标识（id：标识，具有唯一性）
+        - id: route_uri2-fs
+          # 目标服务地址（uri：地址，请求转发后的地址）
+          uri: http://localhost:8300
+          predicates:
+            ## 匹配 GET 请求
+            - Method=GET
+            - Path=/aaa/test/producer
+          # 过滤器
+          filters:
+            # 会将/aaa  截取掉
+            - StripPrefix=1
+            ## 添加指定参数
+            - AddRequestParameter=name, aaaaaaaw
+    nacos:
+      discovery:
+        enabled: false
+
+--- # 服务发现
+spring:
+  # 配置文件名称，用来标识不同环境的配置。由 spring.profiles.active 的值来决定使用哪组配置。
+  profiles: route_ld
+  cloud:
+    gateway:
+      # 路由（routes：路由，它由唯一标识（ID）、目标服务地址（uri）、一组断言（predicates）和一组过滤器组成（filters）。filters 不是必需参数。）
+      routes:
+        # 路由标识（id：标识，具有唯一性）   转发指定地址并传入参数
+        - id: route_uri2-fs
+          # 目标服务地址（uri：地址，请求转发后的地址）
+          uri: lb://producer
+          # 路由条件（predicates：断言，匹配 HTTP 请求内容）
+          predicates:
+            # 匹配规则
+            - Path=/demo/**
+          # 过滤器（filters：过滤器，过滤规则）
+          filters:
+            # 会将/demo截取掉
+            - StripPrefix=1
+            ## 添加指定参数
+            - AddRequestParameter=name, bbbbb
+      discovery:
+        locator:
+          enabled: true #注册中心发现
+          lower-case-service-id: true #小写
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
+      eager: true #关闭懒加载

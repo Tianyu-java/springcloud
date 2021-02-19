@@ -1,0 +1,24 @@
+# 配置文件的名称构成
+# ${prefix}-${spring.profile.active}.${file-extension}
+# 如${spring.profile.active}部分为空 , 则名称构成为${prefix}.${file-extension}
+# ${prefix}默认是#{spring.application.name}也可以指定${spring.cloud.nacos.cofig.prefix}
+server:
+  port: 8500
+
+spring:
+  application:
+    name: config
+  cloud:
+    nacos:
+      config:
+        # 配置中心的地址
+        server-addr: localhost:8848
+        # 配置文件的格式 ${file-extension} 部分
+        file-extension: yaml
+        # 配置文件的第一部分 ${prefix} 部分
+        prefix: config
+      discovery:
+        server-addr: localhost:8848
+    loadbalancer:
+      retry:
+        enabled: false

@@ -1,0 +1,15 @@
+server:
+  port: 8800
+
+spring:
+  application:
+    name: producer
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+    #sentinel使用
+    sentinel:
+      transport:
+        port: 8719
+        dashboard: localhost:8080
